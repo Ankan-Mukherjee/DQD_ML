@@ -13,14 +13,12 @@ path2 = "Outputdata/" ;
 
 %% Input Files
 % var_idx_list = 1:size(infiles, 1);
-var_idx_list=1:150;
+var_idx_list=1:3;
 
 %% Read variables from custom files
 for var_idx = var_idx_list
 vars = readmatrix(path_in + infiles(var_idx).name);
-uii = vars(1); uij = vars(2); t_c = vars(3);
-t_so = vars(4); t_vo = vars(5); gs = vars(6);
-gv = vars(7); b_par = vars(8); b_perp = vars(9);
+uii = vars(1); uij = vars(2); t_c = vars(3); gb_s = vars(4); gb_v = vars(5);
 
 Batch_num = var_idx;
 figname = "DQD"+num2str(Batch_num,'%05.f');
@@ -39,12 +37,6 @@ row_sidx = idivide(int16(n_ep), 2); col_sidx = idivide(int16(n_ep), 1.7);
 Hamiltonian = 0;
 
 alpha21 = 0.5;alpha12 = 0.5;
-% eps1_max=12e-3;eps1_min = -12e-3;
-% eps2_max=12e-3;eps2_min = -12e-3;
-% eps1_max=-4.3e-3;eps1_min = -9.2e-3;  % Forward Bias
-% eps2_max=0.5e-3;eps2_min = -3.4e-3;
-% eps1_max=-4e-3;eps1_min = -8e-3;  % Reverse Bias
-% eps2_max=-0.1e-3;eps2_min = -3e-3;
 
 eps1_max=5e-3;eps1_min = 1e-3;  % Combine both Forward and Rev Bias
 eps2_max=-4e-3;eps2_min = -8.5e-3;
@@ -52,17 +44,14 @@ eps2_max=-4e-3;eps2_min = -8.5e-3;
 % Charging energy matrix Uij --> effect of electron addition in ith level on jth level
 U = ones(4,4) * uij ;
 U(1,1) = uii; U(2,2) = uii; U(3,3) = uii; U(4,4) = uii;
-% U(1,:) = 4e-3; U(:,1) = U(1,:);
-tt=t_c; tso = t_so; tvo = t_vo;    % spin orbit coupling : tso, valley orbit coupling : tvo
+tt=t_c;  
 
 gamma1=50e-6;                               % Lead coupling for lead 1
 gamma2=50e-6;                               % Lead coupling for lead 2
 factor = 0.03;                              % Photon relaxation magntude control
 
-B_par = b_par; B_perp = b_perp;                  % Magnetic fields
-
-zp=gs * muB * B_par/2;                          % Zeeman splitting
-vp=gv * muB * B_perp/2;                         % Valley splitting
+zp=gb_s * muB;                          % Zeeman splitting
+vp=gb_v * muB;                         % Valley splitting
 
 epsilon1_matrix = linspace(eps1_min, eps1_max, n_ep);
 epsilon2_matrix = linspace(eps2_min, eps2_max, n_ep);
@@ -235,53 +224,6 @@ parfor ep1_idx = 1:n_ep
                                     k=[k6-1, k5-1, k4-1, k3-1, k2-1, 1, k1-1, 0]*idx_mat;
                                     H(k+1,kp+1)=tt*((-1)^(k5-1 + k3-1 + k1-1));
                                     H(kp+1,k+1)=H(k+1,kp+1);
-
-                                    % Spin-Orbit Coupling
-                                    % 1 <--> 4
-                                    kp=[0, k6-1, k5-1, 1, k4-1, k3-1, k2-1, k1-1]*idx_mat;
-                                    k=[1, k6-1, k5-1, 0, k4-1, k3-1, k2-1, k1-1]*idx_mat;
-                                    H(k+1,kp+1)=tso*((-1)^(k6-1 + k4-1 + k2-1));
-                                    H(kp+1,k+1)=H(k+1,kp+1);
-                                    % 2 <--> 3
-                                    kp=[k6-1, 0, 1, k5-1, k4-1, k3-1, k2-1, k1-1]*idx_mat;
-                                    k=[k6-1, 1, 0, k5-1, k4-1, k3-1, k2-1, k1-1]*idx_mat;
-                                    H(k+1,kp+1)=tso*((-1)^(k5-1 + k3-1 + k1-1));
-                                    H(kp+1,k+1)=H(k+1,kp+1);
-                                    % 5 <--> 8+1
-                                    kp=[k6-1, k5-1, k4-1, k3-1, 0, k2-1, k1-1, 1]*idx_mat;
-                                    k=[k6-1, k5-1, k4-1, k3-1, 1, k2-1, k1-1, 0]*idx_mat;
-                                    H(k+1,kp+1)=tso*((-1)^(k6-1 + k4-1 + k2-1));
-                                    H(kp+1,k+1)=H(k+1,kp+1);
-                                    % 6 <--> 7
-                                    kp=[k6-1, k5-1, k4-1, k3-1, k2-1, 0, 1, k1-1]*idx_mat;
-                                    k=[k6-1, k5-1, k4-1, k3-1, k2-1, 1, 0, k1-1]*idx_mat;
-                                    H(k+1,kp+1)=tso*((-1)^(k5-1 + k3-1 + k1-1));
-                                    H(kp+1,k+1)=H(k+1,kp+1);
-
-                                    % Valley-orbit coupling
-                                    % 1 <--> 7
-                                    kp=[0, k6-1, k5-1, k4-1, k3-1, k2-1, 1, k1-1]*idx_mat;
-                                    k=[1, k6-1, k5-1, k4-1, k3-1, k2-1, 0, k1-1]*idx_mat;
-                                    H(k+1,kp+1)=tvo*((-1)^(k6-1 + k4-1 + k2-1));
-                                    H(kp+1,k+1)=H(k+1,kp+1);
-
-                                    % 2 <--> 8
-                                    kp=[k6-1, 0, k5-1, k4-1, k3-1, k2-1, k1-1, 1]*idx_mat;
-                                    k=[k6-1, 1, k5-1, k4-1, k3-1, k2-1, k1-1, 0]*idx_mat;
-                                    H(k+1,kp+1)=tvo*((-1)^(k5-1 + k3-1 + k1-1));
-                                    H(kp+1,k+1)=H(k+1,kp+1);
-
-                                    % 3 <--> 5
-                                    kp=[k6-1, k5-1, 0,  k4-1, 1, k3-1, k2-1, k1-1]*idx_mat;
-                                    k=[k6-1, k5-1, 1,  k4-1, 0, k3-1, k2-1, k1-1]*idx_mat;
-                                    H(k+1,kp+1)=tvo*((-1)^(k6-1 + k4-1 + k2-1));
-                                    H(kp+1,k+1)=H(k+1,kp+1);
-
-                                    % 4 <--> 6
-                                    kp=[k6-1, k5-1, k4-1, 0, k3-1, 1, k2-1, k1-1]*idx_mat;
-                                    k=[k6-1, k5-1, k4-1, 1, k3-1, 0, k2-1, k1-1]*idx_mat;
-                                    H(k+1,kp+1)=tvo*((-1)^(k5-1 + k3-1 + k1-1));
-                                    H(kp+1,k+1)=H(k+1,kp+1);                                                                  
                                 end
                             end
                         end
@@ -316,15 +258,6 @@ parfor ep1_idx = 1:n_ep
             [V7,D7]=eig(H7);D7=real(sum(D7))'; [a7,b7]=sort(D7);
             [V8,D8]=eig(H8);D8=real(sum(D8))'; [a8,b8]=sort(D8);
 
-%             a0 = round(a0 * 10e10)/10e10;         % Take care of spurious precision problems
-%             a1 = round(a1 * 10e10)/10e10;
-%             a2 = round(a2 * 10e10)/10e10;
-%             a3 = round(a3 * 10e10)/10e10;
-%             a4 = round(a4 * 10e10)/10e10;
-%             a5 = round(a5 * 10e10)/10e10;
-%             a6 = round(a6 * 10e10)/10e10;
-%             a7 = round(a7 * 10e10)/10e10;
-%             a8 = round(a8 * 10e10)/10e10;
 
             %need annihilation operator between ’g’ and ’h’ subspaces
             c11=c1([i0],[i1]);c12=c2([i0],[i1]);c13=c3([i0],[i1]);c14=c4([i0],[i1]);
@@ -769,8 +702,8 @@ set(gca,'FontSize',36)
 xlabel('VG_2 (mV)','FontSize',36)
 ylabel('VG_1 (mV)','FontSize',36)
 title("DQD dot energy vs Current at V_{SD} = " + (Vsd)* 1e3 + " mV",'FontSize',40 )
-subtitle("I at t_c:"+abs(tt)+" U_{11}:"+U(1,1)+" B_{||}: "+B_par+" V_{SD}:"+Vsd+...
-    " B_{\perp}: "+B_perp + " tso: " + tso + " tvo: " + tvo , 'FontSize',20);
+% subtitle("I at t_c:"+abs(tt)+" U_{11}:"+U(1,1)+" B_{||}: "+B_par+" V_{SD}:"+Vsd+...
+%     " B_{\perp}: "+B_perp + " tso: " + tso + " tvo: " + tvo , 'FontSize',20);
 h.Label.String = "I_d (pA)";
 
 if (section_cut == true)
@@ -786,9 +719,9 @@ if (section_cut == true)
     ylabel('|I_D| (pA)','FontSize',48)
     yline(0,'--','y = 0','LineWidth',3)
     xline(-3,'--','x = -3','LineWidth',3)
-    subtitle("I at t_c:"+abs(tt)+" U_{11}:"+U(1,1)+" B_{||}: "+B_par+" V_{SD}:"+Vsd+...
-        " B_{\perp}: "+B_perp + " tso: " + tso + " tvo: " + tvo + " \epsilon_{abs}: "+...
-        search_val, 'FontSize',20);
+    % subtitle("I at t_c:"+abs(tt)+" U_{11}:"+U(1,1)+" B_{||}: "+B_par+" V_{SD}:"+Vsd+...
+    %     " B_{\perp}: "+B_perp + " tso: " + tso + " tvo: " + tvo + " \epsilon_{abs}: "+...
+    %     search_val, 'FontSize',20);
     ylim padded;
     set(gcf, 'Position', get(0, 'Screensize'));
     saveas(FigH, path1+figname+'det.png','png');
@@ -805,90 +738,4 @@ end
 set(FigH, 'Position', get(0, 'Screensize'));
 saveas(FigH, path1+figname+'cmap.png','png');
 
-
-%% Save Matrix
-%writematrix([det_axis, abs(curr_det_axis)/max(abs(curr_det_axis))],path2+figname+'det.csv');
-
-% % set(gca,'ColorScale','log');
-% % heatmap(I, epsilon1_matrix, epsilon2_matrix)
-% figure(109)
-% [x,y] = meshgrid(epsilon1_matrix,epsilon2_matrix);
-% pcolor(y*1e3,x*1e3, G );
-% h = colorbar;
-% colormap jet
-% shading interp
-% set(gca,'FontSize',36)
-% xlabel('VG_2 (mV)','FontSize',36)
-% ylabel('VG_1 (mV)','FontSize',36)
-% title("DQD dot energy vs Conductance at V_{SD} = " + (Vsd)* 1e3 + " mV",'FontSize',40 )
-% subtitle("G at t_c:"+abs(tt)+" U_{11}:"+U(1,1)+" B_{||}: "+B_par*1e3+"mT V_{SD}:"+Vsd+...
-%     " B_{\perp}: (mT)"+B_perp*1e3, 'FontSize',20);
-% h.Label.String = "G (q^2/h)";
-% % saveas(gcf,"G_t:"+abs(tt)+"_U11:"+U11+"_zp:"+zp+"_VSD:"+Vmin+".png")
-% % Probabilities plot in terms of total occupancies
-% N1_occ = sum(N1_data(:,:,:,1));
-% N1_occ = reshape(N1_occ, n_ep, n_ep);
-% figure(204)
-% hold on
-% p = pcolor(y*1e3,x*1e3, N1_occ);
-% % c = contour(y*1e3,x*1e3,Z);
-% % p.FaceAlpha = 0.3;
-% h = colorbar;
-% colormap jet
-% shading interp
-% set(gca,'FontSize',36)
-% xlabel('VG_2 (mV)','FontSize',36)
-% ylabel('VG_1 (mV)','FontSize',36)
-% title("Occupancy in 1st dot",'FontSize',40 )
-% h.Label.String = "Number";
-% % rows = [];
-% % err2 = (N1_occ - 2)^2;
-% % [row,col] = find(err2 == min(min(err2,[],1)));rows=[rows row];
-% % yline(gca,-epsilon1_matrix(row)*1e3, 'color', 'blue', 'LineWidth',5);
-% % err1 = (N1_occ - 1)^2;
-% % [row,col] = find(err1 == min(min(err1,[],1)));rows=[rows row];
-% % yline(gca,-epsilon1_matrix(row)*1e3, 'color', 'blue', 'LineWidth',5);
-% 
-% N2_occ = sum(N2_data(:,:,:,1));
-% N2_occ = reshape(N2_occ, n_ep, n_ep);
-% figure(205)
-% hold on
-% p = pcolor(y*1e3,x*1e3, N2_occ);
-% % c = contour(y*1e3,x*1e3,Z);
-% % p.FaceAlpha = 0.3;
-% h = colorbar;
-% colormap jet
-% shading interp
-% set(gca,'FontSize',36)
-% xlabel('VG_2 (mV)','FontSize',36)
-% ylabel('VG_1 (mV)','FontSize',36)
-% title("Occupancy in 2nd dot",'FontSize',40 )
-% h.Label.String = "Number";
-% cols=[];
-% % err2 = (N2_occ - 2)^2;
-% % [row,col] = find(err2 == min(min(err2,[],1)));cols=[cols col];
-% % xline(gca,-epsilon1_matrix(col)*1e3, 'color', 'blue', 'LineWidth',5);
-% % err1 = (N2_occ - 1)^2;
-% % [row,col] = find(err1 == min(min(err1,[],1)));cols=[cols col];
-% % xline(gca,-epsilon1_matrix(col)*1e3, 'color', 'blue', 'LineWidth',5);
-% % 
-% N_occ = sum(N_data(:,:,:,1));
-% N_occ = reshape(N_occ, n_ep, n_ep);
-% figure(206)
-% hold on
-% p = pcolor(y*1e3,x*1e3, N_occ);
-% % c = contour(y*1e3,x*1e3,Z);
-% % p.FaceAlpha = 0.3;
-% h = colorbar;
-% colormap jet
-% shading interp
-% set(gca,'FontSize',36)
-% xlabel('VG_2 (mV)','FontSize',36)
-% ylabel('VG_1 (mV)','FontSize',36)
-% title("Occupancy in Two dots combined",'FontSize',40 )
-% h.Label.String = "Number";
-% % save("energy_matrix", "energy_matrix");
-% % save("det_matrix", "det_matrix");
-% % save("epsilon1_matrix", "epsilon1_matrix");
-% % save("epsilon2_matrix", "epsilon2_matrix");
 end
